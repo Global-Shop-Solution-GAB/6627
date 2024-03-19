@@ -1,0 +1,59 @@
+﻿Program.Sub.Preflight.Start
+V.Global.bConOpen.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Brandon Medina
+'Customer: Secon Rubber and Plastics
+'Quote: 13352-0
+'Desc: Automatically Populate Manufacturer name when Vendor number is selected on Inventory Xref Screen
+F.Intrinsic.Control.Try
+	V.Local.sSQL.Declare
+	V.Local.sRet.Declare
+	V.Local.bMultiRet.Declare
+	V.Local.sMsg.Declare
+	
+	F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+		'Vendor Xref Vendor Hook 
+		F.Intrinsic.Control.Case("13100")
+			'000045:VENDOR (number)
+			F.Intrinsic.String.Build("select NAME_VENDOR from V_VENDOR_MASTER where VENDOR = '{0}'", V.Passed.000045.PSQLFriendly, V.Local.sSQL)
+			F.ODBC.Connection!con.OpenCompanyConnection
+			V.Global.bConOpen.Set(True)
+			F.ODBC.Connection!con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.ODBC.Connection!con.Close
+			V.Global.bConOpen.Set(False)
+			
+			F.Intrinsic.String.IsInString(V.Local.sRet, "#$#", True, V.Local.bMultiRet)
+			F.Intrinsic.Control.If(V.Local.bMultiRet)
+				'Shouldn't happen but end just in case multiple vendors are returned 
+				F.Intrinsic.String.Build("Multiple vendors exist for vendor number: {0}. Please contact Global Shop for support", V.Passed.000045.Trim, V.Local.sMsg)
+				F.Intrinsic.UI.Msgbox(V.Local.sMsg, "Multiple Vendors under same number")
+				F.Intrinsic.Control.End
+			F.Intrinsic.Control.EndIf
+			
+			'000009: MANUFACTUER NAME 
+			V.Passed.000009.Set(V.Local.sRet.Trim)
+			
+	F.Intrinsic.Control.EndSelect
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, V.Ambient.CurrentSubroutine)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.ErrorMsg.Start
+V.Local.sError.Declare
+
+F.Intrinsic.Control.If(V.Global.bConOpen)
+	F.ODBC.Connection!con.Close
+F.Intrinsic.Control.EndIf	
+
+'Generic Error message.
+f.Intrinsic.String.Build("Project GCG_6627_Pop_Man_Name.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$bmedina$}$20220211121018429$}$kOipCrsyLBVj2KoSwkcdK23ChxGVcBlEsO23xXkrXwiwo8Jj9EZJpQbmHPayxGVsZkPgthSOiU8=
+Program.Sub.Comments.End
